@@ -223,6 +223,14 @@ declare global {
     height?: number;
     className?: string;
   };
+
+  type CountrySelectProps = {
+    name: string;
+    label: string;
+    control: Control<SignUpFormData>;
+    error?: FieldError;
+    required?: boolean;
+  };
 }
 
 export {};
