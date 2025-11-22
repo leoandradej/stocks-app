@@ -10,7 +10,7 @@ const SignIn = () => {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<SignUpFormData>({
+  } = useForm<SignInFormData>({
     defaultValues: {
       email: "",
       password: "",
@@ -47,7 +47,7 @@ const SignIn = () => {
         <InputField
           name="password"
           label="Password"
-          placeholder="Enter a strong password"
+          placeholder="Enter your password"
           type="password"
           register={register}
           error={errors.password}

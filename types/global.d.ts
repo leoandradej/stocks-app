@@ -17,7 +17,7 @@ declare global {
   type CountrySelectProps = {
     name: string;
     label: string;
-    control: Control;
+    control: Control<SignUpFormData>;
     error?: FieldError;
     required?: boolean;
   };
@@ -222,14 +222,6 @@ declare global {
     config: Record<string, unknown>;
     height?: number;
     className?: string;
-  };
-
-  type CountrySelectProps = {
-    name: string;
-    label: string;
-    control: Control<SignUpFormData>;
-    error?: FieldError;
-    required?: boolean;
   };
 }
 
