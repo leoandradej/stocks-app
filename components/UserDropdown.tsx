@@ -13,15 +13,15 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut } from "lucide-react";
 import NavItems from "./NavItems";
+import { signOut } from "@/lib/actions/auth.actions";
 
-const UserDropdown = () => {
+const UserDropdown = ({ user }: { user: User }) => {
   const router = useRouter();
 
   const handleSignOut = async () => {
+    await signOut();
     router.push("/sign-in");
   };
-
-  const user = { name: "John", email: "contact@john.com" };
 
   return (
     <DropdownMenu>
@@ -31,7 +31,7 @@ const UserDropdown = () => {
           className="flex items-center gap-3 text-gray-400 cursor-pointer hover:bg-gray-700!"
         >
           <Avatar className="h-8 w-8">
-            <AvatarImage src="https://github.com/shadcn.png" />
+            <AvatarImage src="https://api.dicebear.com/9.x/glass/svg" />
             <AvatarFallback className="bg-yellow-500 text-yellow-900 text-sm font-bold">
               {user.name[0]}
             </AvatarFallback>
@@ -48,7 +48,7 @@ const UserDropdown = () => {
         <DropdownMenuLabel>
           <div className="flex relative items-center gap-3 py-2">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="https://github.com/shadcn.png" />
+              <AvatarImage src="https://api.dicebear.com/9.x/glass/svg" />
               <AvatarFallback className="bg-yellow-500 text-yellow-900 text-sm font-bold">
                 {user.name[0]}
               </AvatarFallback>
