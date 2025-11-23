@@ -35,14 +35,26 @@ export const sendSignUpEmail = inngest.createFunction(
         (part && "text" in part ? part.text : null) ||
         "Thanks for joining Signalist. You now have the tools to track markets ans make smarter moves.";
 
-      const {
-        data: { email, name },
-      } = event;
-      return await sendWelcomeEmail({
-        email,
-        name,
-        intro: introText,
-      });
+await step.run("send-welcome-email", async () => {
+  const part = response.candidates?.[0]?.content?.parts?.[0];
+  const introText =
+    (part && "text" in part ? part.text : null) ||
+    "Thanks for joining Signalist. You now have the tools to track markets and make smarter moves.";
+
+  const {
+    data: { email, name },
+  } = event;
+  
+  if (!email || !name) {
+    throw new Error("Missing required email or name in event data");
+  }
+  
+  return await sendWelcomeEmail({
+    email,
+    name,
+    intro: introText,
+  });
+});
     });
 
     return {
