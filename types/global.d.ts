@@ -122,7 +122,7 @@ declare global {
 
   type WatchlistButtonProps = {
     symbol: string;
-    company: string;
+    company?: string;
     isInWatchlist: boolean;
     showTrashIcon?: boolean;
     type?: "button" | "icon";
