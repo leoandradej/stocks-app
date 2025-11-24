@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export const formatTimeAgo = (timestamp: number) => {
   const now = Date.now();
-  const diffInMs = now - timestamp * 1000; // Convert to milliseconds
+  const diffInMs = Math.max(0, now - timestamp * 1000); // Convert to milliseconds
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
 
@@ -75,10 +75,7 @@ export const calculateNewsDistribution = (symbolsCount: number) => {
 // Check for required article fields
 export const validateArticle = (article: RawNewsArticle): boolean =>
   Boolean(
-    article.headline &&
-      article.summary &&
-      article.url &&
-      article.datetime
+    article.headline && article.summary && article.url && article.datetime
   );
 
 // Get today's date string in YYYY-MM-DD format
