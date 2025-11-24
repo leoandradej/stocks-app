@@ -13,6 +13,7 @@ let cached = global.mongooseCache;
 
 if (!cached) {
   global.mongooseCache = { conn: null, promise: null };
+  cached = global.mongooseCache;
 }
 
 // Ensures efficient connection to MongoDB.
