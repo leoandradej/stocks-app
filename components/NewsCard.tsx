@@ -21,7 +21,7 @@ const NewsCard = ({
         {source} • {dateStr}
       </div>
       <p className="news-summary">{summary}</p>
-      <a href={url} className="news-cta">
+      <a href={url} target="_blank" rel="noopener noreferrer" className="news-cta">
         Read More
       </a>
     </article>
