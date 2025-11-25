@@ -182,6 +182,16 @@ declare global {
     image?: string;
   };
 
+  type MarketNewsCard = {
+    id: number;
+    headline: string;
+    summary: string;
+    source: string;
+    url: string;
+    date: string;
+    symbol: string;
+  };
+
   type WatchlistNewsProps = {
     news?: MarketNewsArticle[];
   };

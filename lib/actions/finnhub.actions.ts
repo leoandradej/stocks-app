@@ -2,7 +2,7 @@
 
 import { getDateRange, validateArticle, formatArticle } from "@/lib/utils";
 import { POPULAR_STOCK_SYMBOLS } from "@/lib/constants";
-import { cache } from "react";
+import { getCurrentUserWatchlistSymbols } from "@/lib/actions/watchlist.actions";
 
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 const NEXT_PUBLIC_FINNHUB_API_KEY =
@@ -26,6 +26,100 @@ async function fetchJSON<T>(
 }
 
 export { fetchJSON };
+
+const TOKEN = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY ?? "";
+function requireToken() {
+  if (!TOKEN) throw new Error("FINNHUB API key is not configured");
+  return TOKEN;
+}
+
+export async function getQuote(symbol: string): Promise<QuoteData> {
+  const token = requireToken();
+  const url = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(symbol)}&token=${token}`;
+  return fetchJSON<QuoteData>(url, 15);
+}
+
+export async function getProfile(symbol: string): Promise<ProfileData> {
+  const token = requireToken();
+  const url = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${encodeURIComponent(symbol)}&token=${token}`;
+  return fetchJSON<ProfileData>(url, 3600);
+}
+
+export async function getMetrics(symbol: string): Promise<FinancialsData> {
+  const token = requireToken();
+  const url = `${FINNHUB_BASE_URL}/stock/metric?symbol=${encodeURIComponent(symbol)}&metric=all&token=${token}`;
+  return fetchJSON<FinancialsData>(url, 86400);
+}
+
+function formatCurrency(n?: number): string | undefined {
+  if (typeof n !== "number" || Number.isNaN(n)) return undefined;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+function formatPct(n?: number): string | undefined {
+  if (typeof n !== "number" || Number.isNaN(n)) return undefined;
+  return `${n.toFixed(2)}%`;
+}
+
+function abbreviate(n?: number): string | undefined {
+  if (typeof n !== "number" || Number.isNaN(n)) return undefined;
+  const abs = Math.abs(n);
+  if (abs >= 1e12) return `${(n / 1e12).toFixed(2)}T`;
+  if (abs >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+  if (abs >= 1e3) return `${(n / 1e3).toFixed(2)}K`;
+  return n.toFixed(2);
+}
+
+export async function buildWatchlistData(
+  items: { symbol: string; company: string; addedAt: Date }[]
+): Promise<StockWithData[]> {
+  if (!items?.length) return [];
+
+  const rows = await Promise.all(
+    items.map(async ({ symbol, company, addedAt }) => {
+      try {
+        const [quote, profile, metrics] = await Promise.all([
+          getQuote(symbol),
+          getProfile(symbol),
+          getMetrics(symbol),
+        ]);
+
+        const currentPrice = typeof quote?.c === "number" ? quote.c : undefined;
+        const changePercent = typeof quote?.dp === "number" ? quote.dp : undefined;
+        const marketCapRaw = profile?.marketCapitalization; // Finnhub profile2 returns USD in billions for some; keep as-is
+        const peRaw = metrics?.metric?.peBasicExclExtraTTM ?? metrics?.metric?.peTTM;
+
+        return {
+          userId: "",
+          symbol,
+          company,
+          addedAt,
+          currentPrice,
+          changePercent,
+          priceFormatted: formatCurrency(currentPrice),
+          changeFormatted: formatPct(changePercent),
+          marketCap: marketCapRaw !== undefined ? abbreviate(marketCapRaw >= 1e6 ? marketCapRaw : marketCapRaw * 1_000_000_000) : undefined,
+          peRatio: typeof peRaw === "number" ? peRaw.toFixed(2) : undefined,
+        } as StockWithData;
+      } catch (e) {
+        console.error("hydrate watchlist row error", symbol, e);
+        return {
+          userId: "",
+          symbol,
+          company,
+          addedAt,
+        } as StockWithData;
+      }
+    })
+  );
+
+  return rows;
+}
 
 export async function getNews(
   symbols?: string[]
@@ -109,9 +203,10 @@ export async function getNews(
   }
 }
 
-export const searchStocks = cache(
-  async (query?: string): Promise<StockWithWatchlistStatus[]> => {
-    try {
+export async function searchStocks(
+  query?: string
+): Promise<StockWithWatchlistStatus[]> {
+  try {
       const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
       if (!token) {
         // If no token, log and return empty to avoid throwing per requirements
@@ -170,6 +265,10 @@ export const searchStocks = cache(
         results = Array.isArray(data?.result) ? data.result : [];
       }
 
+      // Fetch user's watchlist symbols to flag results
+      const userSymbols = await getCurrentUserWatchlistSymbols();
+      const set = new Set((userSymbols || []).map((s) => s.toUpperCase()));
+
       const mapped: StockWithWatchlistStatus[] = results
         .map((r) => {
           const upper = (r.symbol || "").toUpperCase();
@@ -185,7 +284,7 @@ export const searchStocks = cache(
             name,
             exchange,
             type,
-            isInWatchlist: false,
+            isInWatchlist: set.has(upper),
           };
           return item;
         })
@@ -196,5 +295,4 @@ export const searchStocks = cache(
       console.error("Error in stock search:", err);
       return [];
     }
-  }
-);
+}

@@ -1,5 +1,6 @@
 import TradingViewWidget from "@/components/TradingViewWidget";
 import WatchlistButton from "@/components/WatchlistButton";
+import { getCurrentUserWatchlistSymbols } from "@/lib/actions/watchlist.actions";
 import {
   BASELINE_WIDGET_CONFIG,
   CANDLE_CHART_WIDGET_CONFIG,
@@ -12,6 +13,10 @@ import {
 const StockDetail = async ({ params }: StockDetailsPageProps) => {
   const { symbol } = await params;
   const scriptUrl = `https://s3.tradingview.com/external-embedding/embed-widget-`;
+
+  // Determine if this symbol is already in the user's watchlist (server side)
+  const symbols = await getCurrentUserWatchlistSymbols();
+  const isInWatchlist = symbols.includes(symbol.toUpperCase());
 
   return (
     <div className="flex min-h-screen p-4 md:p-6 lg:p-8">
@@ -44,7 +49,7 @@ const StockDetail = async ({ params }: StockDetailsPageProps) => {
           <div className="flex items-center justify-between">
             <WatchlistButton
               symbol={symbol.toUpperCase()}
-              isInWatchlist={false}
+              isInWatchlist={isInWatchlist}
             />
           </div>
 
