@@ -2,6 +2,10 @@
 
 import { useDebounce } from "@/hooks/useDebounce";
 import { searchStocks } from "@/lib/actions/finnhub.actions";
+import {
+  addToWatchlist,
+  removeFromWatchlist,
+} from "@/lib/actions/watchlist.actions";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import {
@@ -10,7 +14,7 @@ import {
   CommandInput,
   CommandList,
 } from "./ui/command";
-import { Loader2, TrendingUp } from "lucide-react";
+import { Loader2, Star, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
 const SearchCommand = ({
@@ -69,6 +73,43 @@ const SearchCommand = ({
     setStocks(initialStocks);
   };
 
+  const toggleWatchlist = async (
+    e: React.MouseEvent,
+    stock: StockWithWatchlistStatus
+  ) => {
+    // Prevent navigating when clicking the star
+    e.preventDefault();
+    e.stopPropagation();
+
+    const { symbol, name } = stock;
+    const next = !stock.isInWatchlist;
+
+    // Optimistic update
+    setStocks((prev) =>
+      (prev || []).map((s) =>
+        s.symbol === symbol ? { ...s, isInWatchlist: next } : s
+      )
+    );
+
+    try {
+      if (next) {
+        const res = await addToWatchlist({ symbol, company: name });
+        if (!("ok" in res && res.ok)) throw new Error("Add failed");
+      } else {
+        const res = await removeFromWatchlist({ symbol });
+        if (!("ok" in res && res.ok)) throw new Error("Remove failed");
+      }
+    } catch (err) {
+      console.error(err);
+      // Revert optimistic change on error
+      setStocks((prev) =>
+        (prev || []).map((s) =>
+          s.symbol === symbol ? { ...s, isInWatchlist: !next } : s
+        )
+      );
+    }
+  };
+
   return (
     <>
       {renderAs === "text" ? (
@@ -124,7 +165,14 @@ const SearchCommand = ({
                         {stock.symbol} | {stock.exchange} | {stock.type}
                       </div>
                     </div>
-                    {/* <Star /> */}
+                    <Star
+                      className={`h-5 w-5 transition-colors hover:stroke-amber-300 hover:fill-amber-300 ${
+                        stock.isInWatchlist
+                          ? "stroke-amber-300 fill-amber-300"
+                          : ""
+                      }`}
+                      onClick={(e) => toggleWatchlist(e, stock)}
+                    />
                   </Link>
                 </li>
               ))}

@@ -2,25 +2,54 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "./ui/button";
+import {
+  addToWatchlist,
+  removeFromWatchlist,
+} from "@/lib/actions/watchlist.actions";
 
 const WatchlistButton = ({
   symbol,
+  company,
   isInWatchlist,
   showTrashIcon = false,
   type = "button",
   onWatchlistChange,
 }: WatchlistButtonProps) => {
   const [added, setAdded] = useState<boolean>(!!isInWatchlist);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const label = useMemo(() => {
     if (type === "icon") return added ? "" : "";
     return added ? "Remove from Watchlist" : "Add to Watchlist";
   }, [added, type]);
 
-  const handleClick = () => {
+  const handleClick = async () => {
+    if (loading) return;
     const next = !added;
+    // optimistic update
     setAdded(next);
     onWatchlistChange?.(symbol, next);
+    setLoading(true);
+
+    try {
+      if (next) {
+        const res = await addToWatchlist({
+          symbol,
+          company: company?.trim() || symbol,
+        });
+        if (!("ok" in res && res.ok)) throw new Error(res?.error || "Add failed");
+      } else {
+        const res = await removeFromWatchlist({ symbol });
+        if (!("ok" in res && res.ok)) throw new Error(res?.error || "Remove failed");
+      }
+    } catch (err) {
+      console.error("WatchlistButton toggle error:", err);
+      // revert optimistic update
+      setAdded(!next);
+      onWatchlistChange?.(symbol, !next);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (type === "icon") {
@@ -38,6 +67,7 @@ const WatchlistButton = ({
         }
         className={`watchlist-icon-btn ${added ? "watchlist-icon-added" : ""}`}
         onClick={handleClick}
+        disabled={loading}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -61,6 +91,7 @@ const WatchlistButton = ({
     <Button
       className={`watchlist-btn ${added ? "watchlist-remove" : ""}`}
       onClick={handleClick}
+      disabled={loading}
     >
       {showTrashIcon && added ? (
         <svg
